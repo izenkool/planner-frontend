@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>TaskFlow</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+</head>
+<body>
+
+<div id="app" class="container-fluid">
+    <div class="sidebar">
+        <div class="logo">TaskFlow</div>
+        <ul class="nav-menu">
+            <li class="nav-item"><a href="#"><i class="fas fa-th-large"></i> Dashboard</a></li>
+            <li class="nav-item"><a href="#"><i class="far fa-calendar-alt"></i> Calendar</a></li>
+            <li class="nav-item active"><a href="#"><i class="fas fa-check-square"></i> Tasks</a></li>
+            <li class="nav-item"><a href="#"><i class="fas fa-tags"></i> Tags</a></li>
+            <li class="nav-item"><a href="#"><i class="fas fa-cog"></i> Settings</a></li>
+        </ul>
+    </div>
+
+    <div class="main-content">
+        <div class="toolbar">
+            <div class="search-bar">
+                <i class="fas fa-search"></i>
+                <input type="text" placeholder="Search tasks...">
+            </div>
+            <div class="filters">
+                <div class="filter-group">
+                    <span>Filter:</span>
+                    <div class="filter-btn-group">
+                        <button class="filter-btn active">All</button>
+                        <button class="filter-btn">Incomplete</button>
+                        <button class="filter-btn">Completed</button>
+                    </div>
+                </div>
+                <div class="sort-by">
+                    <span>Sort by:</span>
+                    <select>
+                        <option>Priority</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="task-list">
+            <div class="task-list-header">
+                <div class="task-status">Status</div>
+                <div class="task-details">Task</div>
+                <div class="task-priority">Priority</div>
+                <div class="task-actions">Actions</div>
+            </div>
+
+            <div class="task-item" v-for="task in tasks">
+                <div class="task-status"><div class="checkbox" :class="{ 'completed': task.CompletedAt }" @click="!task.CompletedAt && toggleComplete(task)">
+                    <i v-if="task.CompletedAt" class="fas fa-check"></i>
+                </div></div>
+                <div class="task-details">
+                    <div class="task-title">[[ task.Title ]]</div>
+                    <div class="task-tags">
+                        <span v-for="tag in task.Tags" class="tag" :class="'tag-' + tag.toLowerCase()">[[ tag ]]</span>
+                    </div>
+                </div>
+                <div class="task-priority" :class="'priority-' + task.Priority.toLowerCase()"><span class="priority-dot"></span> [[ task.Priority ]]</div>
+                <div class="task-actions">
+                    <a href="#"><i class="fas fa-pencil-alt"></i></a>
+                    <a href="#" @click.prevent="deleteTask(task.Id)"><i class="fas fa-trash-alt"></i></a>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="pagination">
+            <a href="#" @click.prevent="prevPage">&lt;</a>
+            <a href="#" v-for="page in totalPages" :key="page" :class="{ active: page === currentPage }" @click.prevent="goToPage(page)">[[ page ]]</a>
+            <a href="#" @click.prevent="nextPage">&gt;</a>
+        </div>
+    </div>
+
+    <!-- Add Task Modal -->
+    <div class="modal" v-if="showAddTaskModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Add Task</h2>
+                <span class="close-button" @click="closeAddTaskModal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form @submit.prevent="addTask">
+                    <div class="form-group">
+                        <label for="task-name">Task Name *</label>
+                        <input type="text" id="task-name" v-model="newTask.Title" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="task-description">Description</label>
+                        <textarea id="task-description" v-model="newTask.Description"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Priority</label>
+                        <div class="priority-buttons">
+                            <button type="button" :class="{ active: newTask.Priority === 2 }" @click="newTask.Priority = 2">High</button>
+                            <button type="button" :class="{ active: newTask.Priority === 1 }" @click="newTask.Priority = 1">Medium</button>
+                            <button type="button" :class="{ active: newTask.Priority === 0 }" @click="newTask.Priority = 0">Low</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" v-model="newTask.Repeat"> Repeat Task
+                        </label>
+                    </div>
+
+                    <div v-if="newTask.Repeat && newTask.RecurrenceRule" class="recurrence-form">
+                        <div class="form-group">
+                            <label for="recurrence-type">Repeats</label>
+                            <select id="recurrence-type" v-model="newTask.RecurrenceRule.RecurrenceType">
+                                <option value="daily">Daily</option>
+                                <option value="weekly">Weekly</option>
+                                <option value="monthly">Monthly</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="recurrence-interval">Repeat every</label>
+                            <input type="number" id="recurrence-interval" v-model.number="newTask.RecurrenceRule.Interval" min="1">
+                            <span v-if="newTask.RecurrenceRule.RecurrenceType === 'daily'">days</span>
+                            <span v-if="newTask.RecurrenceRule.RecurrenceType === 'weekly'">weeks</span>
+                            <span v-if="newTask.RecurrenceRule.RecurrenceType === 'monthly'">months</span>
+                        </div>
+                        <div v-if="newTask.RecurrenceRule.RecurrenceType === 'weekly'" class="form-group">
+                            <label>Repeat on</label>
+                            <div class="days-of-week">
+                                <span v-for="(day, index) in weekDays" :key="index" 
+                                      :class="{ active: isDaySelected(index) }" 
+                                      @click="toggleDay(index)">
+                                    [[ day ]]
+                                </span>
+                            </div>
+                        </div>
+                        <div v-if="newTask.RecurrenceRule.RecurrenceType === 'monthly'" class="form-group">
+                            <label>Repeat on day</label>
+                            <input type="number" v-model.number="newTask.RecurrenceRule.DaysOfMonth" min="1" max="31">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Tags</label>
+                        <div class="tags-input">
+                            <span v-for="(tag, index) in newTask.Tags" :key="index" class="tag">
+                                [[ tag ]]
+                                <span @click="removeTag(index)" class="remove-tag">&times;</span>
+                            </span>
+                            <input type="text" v-model="newTag" @keydown.enter.prevent="addTag" placeholder="Add a new tag">
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" @click="closeAddTaskModal">Cancel</button>
+                <button type="button" class="btn btn-primary" @click="addTask">Save Changes</button>
+            </div>
+        </div>
+    </div>
+    <div class="fab" @click="openAddTaskModal"><span>+</span></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+<script src="/js/tasks.js"></script>
+
+</body>
+</html>

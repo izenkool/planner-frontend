@@ -53,19 +53,19 @@
             </div>
 
             <div class="task-item" v-for="task in tasks">
-                <div class="task-status"><div class="checkbox" :class="{ 'completed': task.CompletedAt }" @click="!task.CompletedAt && toggleComplete(task)">
-                    <i v-if="task.CompletedAt" class="fas fa-check"></i>
+                <div class="task-status"><div class="checkbox" :class="{ 'completed': task.completedAt }" @click="!task.completedAt && toggleComplete(task)">
+                    <i v-if="task.completedAt" class="fas fa-check"></i>
                 </div></div>
                 <div class="task-details">
-                    <div class="task-title">[[ task.Title ]]</div>
+                    <div class="task-title">[[ task.title ]]</div>
                     <div class="task-tags">
-                        <span v-for="tag in task.Tags" class="tag" :class="'tag-' + tag.toLowerCase()">[[ tag ]]</span>
+                        <span v-for="tag in task.tags" class="tag" :class="'tag-' + tag.toLowerCase()">[[ tag ]]</span>
                     </div>
                 </div>
-                <div class="task-priority" :class="'priority-' + task.Priority.toLowerCase()"><span class="priority-dot"></span> [[ task.Priority ]]</div>
+                <div class="task-priority" :class="'priority-' + task.priority.toLowerCase()"><span class="priority-dot"></span> [[ task.priority ]]</div>
                 <div class="task-actions">
                     <a href="#"><i class="fas fa-pencil-alt"></i></a>
-                    <a href="#" @click.prevent="deleteTask(task.Id)"><i class="fas fa-trash-alt"></i></a>
+                    <a href="#" @click.prevent="deleteTask(task.id)"><i class="fas fa-trash-alt"></i></a>
                 </div>
             </div>
 
@@ -89,30 +89,30 @@
                 <form @submit.prevent="addTask">
                     <div class="form-group">
                         <label for="task-name">Task Name *</label>
-                        <input type="text" id="task-name" v-model="newTask.Title" required>
+                        <input type="text" id="task-name" v-model="newTask.title" required>
                     </div>
                     <div class="form-group">
                         <label for="task-description">Description</label>
-                        <textarea id="task-description" v-model="newTask.Description"></textarea>
+                        <textarea id="task-description" v-model="newTask.description"></textarea>
                     </div>
                     <div class="form-group">
                         <label>Priority</label>
                         <div class="priority-buttons">
-                            <button type="button" :class="{ active: newTask.Priority === 2 }" @click="newTask.Priority = 2">High</button>
-                            <button type="button" :class="{ active: newTask.Priority === 1 }" @click="newTask.Priority = 1">Medium</button>
-                            <button type="button" :class="{ active: newTask.Priority === 0 }" @click="newTask.Priority = 0">Low</button>
+                            <button type="button" :class="{ active: newTask.priority === 2 }" @click="newTask.priority = 2">High</button>
+                            <button type="button" :class="{ active: newTask.priority === 1 }" @click="newTask.priority = 1">Medium</button>
+                            <button type="button" :class="{ active: newTask.priority === 0 }" @click="newTask.priority = 0">Low</button>
                         </div>
                     </div>
                     <div class="form-group">
                         <label class="checkbox-label">
-                            <input type="checkbox" v-model="newTask.Repeat"> Repeat Task
+                            <input type="checkbox" v-model="newTask.repeat"> Repeat Task
                         </label>
                     </div>
 
-                    <div v-if="newTask.Repeat && newTask.RecurrenceRule" class="recurrence-form">
+                    <div v-if="newTask.repeat && newTask.recurrenceRule" class="recurrence-form">
                         <div class="form-group">
                             <label for="recurrence-type">Repeats</label>
-                            <select id="recurrence-type" v-model="newTask.RecurrenceRule.RecurrenceType">
+                            <select id="recurrence-type" v-model="newTask.recurrenceRule.recurrenceType">
                                 <option value="daily">Daily</option>
                                 <option value="weekly">Weekly</option>
                                 <option value="monthly">Monthly</option>
@@ -120,12 +120,12 @@
                         </div>
                         <div class="form-group">
                             <label for="recurrence-interval">Repeat every</label>
-                            <input type="number" id="recurrence-interval" v-model.number="newTask.RecurrenceRule.Interval" min="1">
-                            <span v-if="newTask.RecurrenceRule.RecurrenceType === 'daily'">days</span>
-                            <span v-if="newTask.RecurrenceRule.RecurrenceType === 'weekly'">weeks</span>
-                            <span v-if="newTask.RecurrenceRule.RecurrenceType === 'monthly'">months</span>
+                            <input type="number" id="recurrence-interval" v-model.number="newTask.recurrenceRule.interval" min="1">
+                            <span v-if="newTask.recurrenceRule.recurrenceType === 'daily'">days</span>
+                            <span v-if="newTask.recurrenceRule.recurrenceType === 'weekly'">weeks</span>
+                            <span v-if="newTask.recurrenceRule.recurrenceType === 'monthly'">months</span>
                         </div>
-                        <div v-if="newTask.RecurrenceRule.RecurrenceType === 'weekly'" class="form-group">
+                        <div v-if="newTask.recurrenceRule.recurrenceType === 'weekly'" class="form-group">
                             <label>Repeat on</label>
                             <div class="days-of-week">
                                 <span v-for="(day, index) in weekDays" :key="index" 
@@ -135,15 +135,15 @@
                                 </span>
                             </div>
                         </div>
-                        <div v-if="newTask.RecurrenceRule.RecurrenceType === 'monthly'" class="form-group">
+                        <div v-if="newTask.recurrenceRule.recurrenceType === 'monthly'" class="form-group">
                             <label>Repeat on day</label>
-                            <input type="number" v-model.number="newTask.RecurrenceRule.DaysOfMonth" min="1" max="31">
+                            <input type="number" v-model.number="newTask.recurrenceRule.daysOfMonth" min="1" max="31">
                         </div>
                     </div>
                     <div class="form-group">
                         <label>Tags</label>
                         <div class="tags-input">
-                            <span v-for="(tag, index) in newTask.Tags" :key="index" class="tag">
+                            <span v-for="(tag, index) in newTask.tags" :key="index" class="tag">
                                 [[ tag ]]
                                 <span @click="removeTag(index)" class="remove-tag">&times;</span>
                             </span>

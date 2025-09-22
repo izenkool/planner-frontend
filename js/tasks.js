@@ -4,16 +4,16 @@ new Vue({
     data: {
         tasks: [],
         newTask: {
-            Title: '',
-            Description: '',
-            Priority: 1,
-            Tags: [],
-            Repeat: false,
-            RecurrenceRule: {
-                RecurrenceType: 'daily',
-                Interval: 1,
-                DaysOfWeek: 0,
-                DaysOfMonth: 0,
+            title: '',
+            description: '',
+            priority: 1,
+            tags: [],
+            repeat: false,
+            recurrenceRule: {
+                recurrenceType: 'daily',
+                interval: 1,
+                daysOfWeek: 0,
+                daysOfMonth: 0,
             }
         },
         newTag: '',
@@ -22,16 +22,17 @@ new Vue({
         totalPages: 1,
         limit: 10,
         weekDays: ['S', 'M', 'T', 'W', 'T', 'F', 'S'],
+        apiHost: 'http://localhost:8080',
     },
     methods: {
         fetchTasks(page = 1) {
-            fetch(`/api/tasks?page=${page}&limit=${this.limit}`)
+            fetch(`${this.apiHost}/api/tasks?page=${page}&limit=${this.limit}`)
                 .then(response => response.json())
                 .then(data => {
                     this.tasks = data.tasks.map(task => ({
                         ...task,
-                        Priority: ['Low', 'Medium', 'High'][task.Priority] || 'Medium',
-                        Tags: task.Tags ? task.Tags.map(t => t.Name) : []
+                        priority: ['Low', 'Medium', 'High'][task.priority] || 'Medium',
+                        tags: task.tags ? task.tags.map(t => t.name) : []
                     }));
                     this.totalPages = Math.ceil(data.total / this.limit);
                     this.currentPage = page;
@@ -39,11 +40,11 @@ new Vue({
         },
         addTask() {
             let taskData = { ...this.newTask };
-            if (!taskData.Repeat) {
-                delete taskData.RecurrenceRule;
+            if (!taskData.repeat) {
+                delete taskData.recurrenceRule;
             }
 
-            fetch('/api/tasks', {
+            fetch(`${this.apiHost}/api/tasks`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -51,23 +52,23 @@ new Vue({
                 body: JSON.stringify(taskData)
             })
             .then(() => {
-                this.newTask.Title = '';
-                this.newTask.Description = '';
-                this.newTask.Priority = 1;
-                this.newTask.Tags = [];
-                this.newTask.Repeat = false;
-                this.newTask.RecurrenceRule = {
-                    RecurrenceType: 'daily',
-                    Interval: 1,
-                    DaysOfWeek: 0,
-                    DaysOfMonth: 0,
+                this.newTask.title = '';
+                this.newTask.description = '';
+                this.newTask.priority = 1;
+                this.newTask.tags = [];
+                this.newTask.repeat = false;
+                this.newTask.recurrenceRule = {
+                    recurrenceType: 'daily',
+                    interval: 1,
+                    daysOfWeek: 0,
+                    daysOfMonth: 0,
                 };
                 this.showAddTaskModal = false;
                 this.fetchTasks(this.currentPage);
             });
         },
         deleteTask(taskId) {
-            fetch('/api/tasks/' + taskId, {
+            fetch(`${this.apiHost}/api/tasks/` + taskId, {
                 method: 'DELETE'
             })
             .then(() => {
@@ -75,16 +76,16 @@ new Vue({
             });
         },
         addTag() {
-            if (this.newTag.trim() !== '' && !this.newTask.Tags.includes(this.newTag.trim())) {
-                this.newTask.Tags.push(this.newTag.trim());
+            if (this.newTag.trim() !== '' && !this.newTask.tags.includes(this.newTag.trim())) {
+                this.newTask.tags.push(this.newTag.trim());
                 this.newTag = '';
             }
         },
         removeTag(index) {
-            this.newTask.Tags.splice(index, 1);
+            this.newTask.tags.splice(index, 1);
         },
         toggleComplete(task) {
-            fetch('/api/tasks/' + task.Id, {
+            fetch(`${this.apiHost}/api/tasks/` + task.Id, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json'
@@ -124,11 +125,11 @@ new Vue({
             this.fetchTasks(page);
         },
         isDaySelected(dayIndex) {
-            return this.newTask.RecurrenceRule && (this.newTask.RecurrenceRule.DaysOfWeek & (1 << dayIndex)) !== 0;
+            return this.newTask.recurrenceRule && (this.newTask.recurrenceRule.daysOfWeek & (1 << dayIndex)) !== 0;
         },
         toggleDay(dayIndex) {
-            if (this.newTask.RecurrenceRule) {
-                this.newTask.RecurrenceRule.DaysOfWeek ^= (1 << dayIndex);
+            if (this.newTask.recurrenceRule) {
+                this.newTask.recurrenceRule.daysOfWeek ^= (1 << dayIndex);
             }
         }
     },
